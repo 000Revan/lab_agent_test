@@ -1,0 +1,29 @@
+# 当前启用的测试环境，对应下方同名配置节点
+envs: test
+
+test:
+  # 被测服务地址和请求超时时间（秒）
+  base_url: "http://127.0.0.1:8000"
+  timeout: 10
+
+  # 测试数据库连接信息
+  db:
+    host: "127.0.0.1"
+    port: 3306
+    user: "your_database_user"
+    password: "your_database_password"
+    database: "lab_agent"
+    charset: "utf8mb4"
+
+  # 接口自动化使用的固定测试账号
+  account:
+    user:
+      username: "your_test_username"
+      password: "your_test_password"
+      name: "测试用户"
+      role: "student"
+    admin:
+      username: "your_admin_username"
+      password: "your_admin_password"
+      name: "测试管理员"
+      role: "admin"

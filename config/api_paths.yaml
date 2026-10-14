@@ -1,0 +1,120 @@
+auth:
+  login:
+    method: POST
+    path: /api/auth/login
+    desc: 用户登录
+
+  register:
+    method: POST
+    path: /api/auth/register
+    desc: 用户注册
+
+user:
+  info:
+    method: GET
+    path: /api/user/info
+    desc: 获取当前登录用户信息
+
+  update:
+    method: PUT
+    path: /api/user/update
+    desc: 修改当前登录用户信息
+
+  password:
+    method: PUT
+    path: /api/user/password
+    desc: 修改当前登录用户密码
+
+  list:
+    method: GET
+    path: /api/user/list
+    desc: 管理员查询用户列表
+
+  create:
+    method: POST
+    path: /api/user
+    desc: 管理员新增用户
+
+  update_by_id:
+    method: PUT
+    path: /api/user/{user_id}
+    desc: 管理员修改指定用户
+
+  delete:
+    method: DELETE
+    path: /api/user/{user_id}
+    desc: 管理员删除指定用户
+
+lab:
+  list:
+    method: GET
+    path: /api/lab/list
+    desc: 查询实验室列表
+
+  detail:
+    method: GET
+    path: /api/lab/{lab_id}
+    desc: 查询实验室详情
+
+  create:
+    method: POST
+    path: /api/lab
+    desc: 管理员新增实验室
+
+  update:
+    method: PUT
+    path: /api/lab/{lab_id}
+    desc: 管理员修改实验室
+
+  delete:
+    method: DELETE
+    path: /api/lab/{lab_id}
+    desc: 管理员删除实验室
+
+equipment:
+  list:
+    method: GET
+    path: /api/equipment/list
+    desc: 查询设备列表
+
+  create:
+    method: POST
+    path: /api/equipment
+    desc: 管理员新增设备
+
+  update:
+    method: PUT
+    path: /api/equipment/{equipment_id}
+    desc: 管理员修改设备
+
+  delete:
+    method: DELETE
+    path: /api/equipment/{equipment_id}
+    desc: 管理员删除设备
+
+reservation:
+  create:
+    method: POST
+    path: /api/reservation
+    desc: 用户创建预约
+
+  list:
+    method: GET
+    path: /api/reservation/list
+    desc: 查询预约列表
+
+  cancel:
+    method: PUT
+    path: /api/reservation/{reservation_id}/cancel
+    desc: 用户取消预约
+
+  audit:
+    method: PUT
+    path: /api/reservation/{reservation_id}/audit
+    desc: 管理员审核预约
+
+files:
+  upload:
+    method: POST
+    path: /api/files/upload
+    desc: 上传文件

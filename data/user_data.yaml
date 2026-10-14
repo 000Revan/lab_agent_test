@@ -1,0 +1,610 @@
+# user_data.yaml
+# 来源：测试用例.xlsx；格式参考 auth_data.yaml。
+# role: anonymous=未登录，user=普通用户登录，admin=管理员登录。
+
+user_info_success:
+  - title: "普通用户成功获取用户个人信息"
+    role: user
+    payload: {}
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - id
+        - username
+        - name
+        - role
+        - email
+        - phone
+        - avatar
+        - status
+      expected_values:
+        role: student
+        status: 1
+
+  - title: "管理员成功获取用户个人信息"
+    role: admin
+    payload: {}
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - id
+        - username
+        - name
+        - role
+        - email
+        - phone
+        - avatar
+        - status
+      expected_values:
+        role: admin
+        status: 1
+
+user_info_fail:
+  - title: "获取用户个人信息失败"
+    role: anonymous
+    payload: {}
+    expect:
+      http_status: 401
+      code: 401
+      message: "Not authenticated"
+      data: null
+
+user_profile_update_success:
+  - title: "普通用户成功修改信息"
+    role: temp_user
+    payload:
+      name: "修改信息测试"
+      email: "123@163.com"
+      phone: "13500000000"
+      avatar: /uploads/avatar_test.png
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - id
+        - username
+        - name
+        - role
+        - email
+        - phone
+        - avatar
+        - status
+      expected_values:
+        id: 4
+        username: test_user
+        name: "修改信息测试"
+        role: student
+        email: "123@163.com"
+        phone: "13500000000"
+        avatar: /uploads/avatar_test.png
+        status: 1
+
+  - title: "普通用户尝试修改特殊字段，提交成功但修改不成立"
+    role: temp_user
+    payload:
+      name: "修改信息测试"
+      email: "123@163.com"
+      phone: "13500000000"
+      avatar: /uploads/avatar_test.png
+      role: admin
+      status: "0"
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - id
+        - username
+        - name
+        - role
+        - email
+        - phone
+        - avatar
+        - status
+      expected_values:
+        id: 4
+        username: test_user
+        name: "修改信息测试"
+        role: student
+        email: "123@163.com"
+        phone: "13500000000"
+        avatar: /uploads/avatar_test.png
+        status: 2
+
+  - title: "普通用户尝试修改不存在字段，提交成功但修改不成立"
+    role: temp_user
+    payload:
+      test: test
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+
+user_profile_update_fail:
+  - title: "用户修改信息失败_用户未登录"
+    role: anonymous
+    payload:
+      name: "修改信息测试"
+      email: "123@163.com"
+      phone: "13500000000"
+      avatar: /uploads/avatar_test.png
+    expect:
+      http_status: 401
+      code: 401
+      message: "登录已失效，请重新登录"
+      data: null
+
+user_password_update_success:
+  - title: "普通用户修改密码成功"
+    role: temp_user
+    payload:
+      old_password: "123"
+      new_password: "123456"
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data: null
+
+user_password_update_fail:
+  - title: "普通用户修改密码失败-旧密码错误"
+    role: temp_user
+    payload:
+      old_password: "123"
+      new_password: "123456"
+    expect:
+      http_status: 200
+      code: 500
+      message: "原密码错误"
+      data: null
+
+  - title: "普通用户修改密码失败-新密码与原密码相同"
+    role: temp_user
+    payload:
+      old_password: "123"
+      new_password: "123"
+    expect:
+      http_status: 200
+      code: 500
+      message: "新密码不能与原密码相同"
+      data: null
+
+  - title: "普通用户修改密码失败-新密码为空"
+    role: temp_user
+    payload:
+      old_password: "123"
+      new_password: ""
+    expect:
+      http_status: 200
+      code: 400
+      message: "密码不能为空"
+      data: null
+
+  - title: "普通用户修改密码失败-无字段"
+    role: temp_user
+    payload:
+      raw: "空"
+    expect:
+      http_status: 422
+      code: 422
+      message: "请求参数校验错误"
+      data: null
+
+  - title: "普通用户修改密码失败-旧密码字段缺失"
+    role: temp_user
+    payload:
+      new_password: "123456"
+    expect:
+      http_status: 422
+      code: 422
+      message: "请求参数校验错误"
+      data: null
+
+  - title: "普通用户修改密码失败-新密码字段缺失"
+    role: temp_user
+    payload:
+      old_password: "123"
+    expect:
+      http_status: 422
+      code: 422
+      message: "请求参数校验错误"
+      data: null
+
+  - title: "普通用户修改密码失败-用户未登录"
+    role: anonymous
+    payload:
+      old_password: "123"
+      new_password: "123456"
+    expect:
+      http_status: 401
+      code: 401
+      message: "登录已失效，请重新登录"
+      data: null
+
+admin_user_list_success:
+  - title: "管理员获取用户列表成功"
+    role: admin
+    payload:
+      page: 1
+      pagesize: 10
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - list
+        - total
+
+  - title: "获取用户列表成功-模糊查询"
+    role: admin
+    payload:
+      page: 1
+      pagesize: 11
+      keywords: "测试"
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - list
+        - total
+
+  - title: "获取用户列表成功-无参数"
+    role: admin
+    payload:
+      raw: "空"
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - list
+        - total
+  - title: "获取用户列表成功-page为负数"
+    role: admin
+    payload:
+      page: -1
+      pagesize: 10
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - list
+        - total
+
+  - title: "获取用户列表成功-page_size为负数"
+    role: admin
+    payload:
+      page: 1
+      pagesize: -10
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - list
+        - total
+
+admin_user_list_fail:
+  - title: "获取用户列表失败-page为小数"
+    role: admin
+    payload:
+      page: 1.1
+      pagesize: 10
+    expect:
+      http_status: 422
+      code: 422
+      message: "请求参数校验错误"
+      data: null
+
+  - title: "获取用户列表失败-page_size为小数"
+    role: admin
+    payload:
+      page: 1
+      pagesize: 10.1
+    expect:
+      http_status: 422
+      code: 422
+      message: "请求参数校验错误"
+      data: null
+
+  - title: "获取用户列表失败-page字段为空"
+    role: admin
+    payload:
+      page: ""
+      pagesize: 10
+    expect:
+      http_status: 422
+      code: 422
+      message: "请求参数校验错误"
+      data: null
+
+  - title: "获取用户列表失败-page_size字段为空"
+    role: admin
+    payload:
+      page: 1
+      pagesize: ""
+    expect:
+      http_status: 422
+      code: 422
+      message: "请求参数校验错误"
+      data: null
+
+  - title: "获取用户列表失败-管理员未登录"
+    role: anonymous
+    payload:
+      page: 1
+      pagesize: 10
+    expect:
+      http_status: 401
+      code: 401
+      message: "Not authenticated"
+      data: null
+
+  - title: "获取用户列表失败-用户使用管理员接口"
+    role: user
+    payload:
+      page: 1
+      pagesize: 11
+    expect:
+      http_status: 200
+      code: 403
+      message: "无权限访问"
+      data: null
+
+admin_user_create_success:
+  - title: "管理员创建用户成功"
+    role: admin
+    payload:
+      username: test_admin_create_user
+      name: "管理员创建用户"
+      email: "xxx@163.com"
+      phone: "13333333333"
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - id
+        - username
+        - name
+        - role
+        - email
+        - phone
+        - avatar
+        - status
+      expected_values:
+        id: 11
+        username: test_admin_create_user
+        name: "管理员创建测试"
+        role: student
+        email: "xxx@163.com"
+        phone: "13333333333"
+        avatar: null
+        status: 1
+
+admin_user_create_fail:
+  - title: "管理员创建用户失败-用户已存在"
+    role: admin
+    payload:
+      username: test_admin_create_user
+      name: "管理员创建用户"
+      email: "xxx@163.com"
+      phone: "13333333333"
+    expect:
+      http_status: 200
+      code: 500
+      message: "账号已存在"
+      data: null
+
+  - title: "管理员创建用户失败-字段缺失"
+    role: admin
+    payload:
+      username: test_admin_create_user
+      name: "管理员创建用户"
+    expect:
+      http_status: 422
+      code: 422
+      message: "请求参数校验错误"
+      data: null
+
+  - title: "管理员创建用户失败-管理员未登录"
+    role: anonymous
+    payload:
+      username: test_admin_create_user
+      name: "管理员创建用户"
+      email: "xxx@163.com"
+      phone: "13333333333"
+    expect:
+      http_status: 401
+      code: 401
+      message: "Not authenticated"
+      data: null
+
+  - title: "创建用户失败-用户访问管理员接口"
+    role: user
+    payload:
+      username: test_admin_create_user
+      name: "管理员创建用户"
+      email: "xxx@163.com"
+      phone: "13333333333"
+    expect:
+      http_status: 200
+      code: 403
+      message: "无权限访问"
+      data: null
+
+admin_user_update_success:
+  - title: "管理员修改用户信息成功"
+    role: admin
+    payload:
+      name: "管理员修改测试"
+      email: "ddd@163.com"
+      status: 1
+      role: admin
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - id
+        - username
+        - name
+        - role
+        - email
+        - phone
+        - avatar
+        - status
+      expected_values:
+        id: 11
+        username: test_admin_create_user
+        name: "管理员修改测试"
+        role: admin
+        email: "ddd@163.com"
+        phone: "13333333333"
+        avatar: null
+        status: 1
+    path_params:
+      user_id: existing_user_id
+
+  - title: "管理员修改用户信息成功-输入不存在字段，但是请求成功但不生效"
+    role: admin
+    payload:
+      name: "管理员修改测试"
+      email: "ddd@163.com"
+      status: 1
+      role: admin
+      test: 1
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - id
+        - username
+        - name
+        - role
+        - email
+        - phone
+        - avatar
+        - status
+      expected_values:
+        id: 11
+        username: test_admin_create_user
+        name: "管理员修改测试"
+        role: admin
+        email: "ddd@163.com"
+        phone: "13333333333"
+        avatar: null
+        status: 1
+    path_params:
+      user_id: existing_user_id
+
+admin_user_update_fail:
+  - title: "管理员修改用户信息成功-用户不存在"
+    role: admin
+    payload:
+      name: "管理员修改测试"
+      email: "ddd@163.com"
+      status: 1
+      role: admin
+    expect:
+      http_status: 200
+      code: 500
+      message: "账号不存在"
+      data: null
+    path_params:
+      user_id: not_exists_user_id
+
+  - title: "管理员修改用户信息失败-管理员未登录"
+    role: anonymous
+    payload:
+      name: "管理员修改测试"
+      email: "ddd@163.com"
+      status: 1
+      role: admin
+    expect:
+      http_status: 401
+      code: 401
+      message: "Not authenticated"
+      data: null
+    path_params:
+      user_id: existing_user_id
+
+  - title: "修改用户信息失败-用户访问管理员接口"
+    role: user
+    payload:
+      name: "管理员修改测试"
+      email: "ddd@163.com"
+      status: 2
+      role: admin
+    expect:
+      http_status: 200
+      code: 403
+      message: "无权限访问"
+      data: null
+    path_params:
+      user_id: existing_user_id
+
+admin_user_delete_success:
+  - title: "管理员删除用户成功"
+    role: admin
+    payload: {}
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data: null
+    path_params:
+      user_id: created_user_id
+
+admin_user_delete_fail:
+  - title: "管理员删除用户失败-管理员未登录"
+    role: anonymous
+    payload: {}
+    expect:
+      http_status: 401
+      code: 401
+      message: "Not authenticated"
+      data: null
+    path_params:
+      user_id: existing_user_id
+
+  - title: "管理员删除用户失败-用户不存在"
+    role: admin
+    payload: {}
+    expect:
+      http_status: 200
+      code: 500
+      message: "用户不存在"
+      data: null
+    path_params:
+      user_id: not_exists_user_id
+
+  - title: "管理员删除用户失败-删除当前账户"
+    role: temp_admin
+    payload: {}
+    expect:
+      http_status: 200
+      code: 500
+      message: "不能删除当前登录的账号"
+      data: null
+    path_params:
+      user_id: current_user_id
+
+  - title: "删除用户失败-用户访问管理员接口"
+    role: user
+    payload: {}
+    expect:
+      http_status: 200
+      code: 403
+      message: "无权限访问"
+      data: null
+    path_params:
+      user_id: existing_user_id
