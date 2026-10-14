@@ -11,15 +11,19 @@ login_success:
       data_keys:
         - token
         - user
-      user_keys:
-        - id
-        - username
-        - name
-        - role
-        - email
-        - phone
-        - avatar
-        - status
+      data_types:
+        token: str
+        user: dict
+      nested_data_keys:
+        user:
+          - id
+          - username
+          - name
+          - role
+          - email
+          - phone
+          - avatar
+          - status
 
   - title: 管理员登录成功
     role: anonymous
@@ -33,15 +37,19 @@ login_success:
       data_keys:
         - token
         - user
-      user_keys:
-        - id
-        - username
-        - name
-        - role
-        - email
-        - phone
-        - avatar
-        - status
+      data_types:
+        token: str
+        user: dict
+      nested_data_keys:
+        user:
+          - id
+          - username
+          - name
+          - role
+          - email
+          - phone
+          - avatar
+          - status
 
 login_fail:
   - title: 用户名不存在

@@ -1,4 +1,4 @@
-#用户模块测试用例
+# 用户模块契约示例，不作为自动化执行数据源；实际用例维护在 user_data.yaml。
 get_user_info:
   - title: "普通用户成功获取个人信息"
     role: user
@@ -63,13 +63,13 @@ update_user_profile:
         - phone
         - avatar
         - status
-      data_values:
+      data_fields:
         name: "修改信息测试"
         email: "123@163.com"
         phone: "13500000000"
         avatar: "/uploads/avatar_test.png"
     db_verify:
-      values:
+      fields:
         name: "修改信息测试"
         email: "123@163.com"
         phone: "13500000000"
@@ -97,7 +97,7 @@ update_user_profile:
         - phone
         - avatar
         - status
-      data_values:
+      data_fields:
         name: "修改信息测试"
         email: "123@163.com"
         phone: "13500000000"
@@ -105,7 +105,7 @@ update_user_profile:
         role: "student"
         status: 1
     db_verify:
-      values:
+      fields:
         name: "修改信息测试"
         email: "123@163.com"
         phone: "13500000000"
@@ -142,7 +142,7 @@ update_user_password:
       code: 200
       message: "请求成功"
     db_verify:
-      password: "123"
+      password_plaintext: "123"
 
   - title: "普通用户修改密码失败-旧密码错误"
     role: temp_user
@@ -223,7 +223,7 @@ admin_list_users:
       data_keys:
         - list
         - total
-      key_type:
+      data_types:
         list: "list"
 
   - title: "获取用户列表成功-模糊查询"
@@ -239,7 +239,7 @@ admin_list_users:
       data_keys:
         - list
         - total
-      key_type:
+      data_types:
         list: "list"
 
   - title: "获取用户列表成功-无参数"
@@ -252,7 +252,7 @@ admin_list_users:
       data_keys:
         - list
         - total
-      key_type:
+      data_types:
         list: "list"
 
   - title: "获取用户列表成功-page为负数"
@@ -267,7 +267,7 @@ admin_list_users:
       data_keys:
         - list
         - total
-      key_type:
+      data_types:
         list: "list"
   - title: "获取用户列表成功-page_size为负数"
     role: admin
@@ -281,7 +281,7 @@ admin_list_users:
       data_keys:
         - list
         - total
-      key_type:
+      data_types:
         list: "list"
 
   - title: "获取用户列表成功-page为小数"
@@ -362,14 +362,14 @@ admin_create_user:
         - phone
         - avatar
         - status
-      data_values:
+      data_fields:
         username: test_admin_create_temp_user
         password: 123456
         name: "管理员创建测试用户"
         email: "xxx@163.com"
         phone: "13333333333"
     db_verify:
-      values:
+      fields:
         username: test_admin_create_temp_user
         password: 123456
         name: "管理员创建测试用户"
@@ -378,22 +378,6 @@ admin_create_user:
         role: "student"
         status: 1
 
-admin_update_user:
-  - title:
-    role:
-    payload:
-    expect:
-      http_status:
-      code:
-      message:
-      data:
+admin_update_user: []
 
-admin_delete_user:
-  - title:
-    role:
-    payload:
-    expect:
-      http_status:
-      code:
-      message:
-      data:
+admin_delete_user: []

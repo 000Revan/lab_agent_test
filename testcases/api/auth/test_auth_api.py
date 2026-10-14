@@ -5,8 +5,6 @@ import allure
 
 from utils.assert_util import (
     assert_common_response,
-    assert_data_field_type,
-    assert_data_keys_exist,
 )
 from utils.yaml_util import load_data_yaml
 
@@ -45,14 +43,9 @@ class TestAuthApi:
         with allure.step("断言通用响应"):
             body = assert_common_response(res, case["expect"])
         with allure.step("断言登录业务数据"):
-            assert_data_field_type(body, "token", str)
-            assert_data_field_type(body, "user", dict)
-
-            data = assert_data_keys_exist(body, case["expect"]["data_keys"])
+            data = body["data"]
             assert data["token"]
             user = data["user"]
-            for key in case["expect"].get("user_keys", []):
-                assert key in user, f"user内部错误，缺少{key}字段"
             assert user["username"] == case["payload"]["username"]
 
     @allure.story("登录接口")
