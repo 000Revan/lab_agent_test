@@ -35,6 +35,7 @@ reports/temps/
 reports/allure/
 allure-results/
 allure-report/
+reports/junit.xml
 
 # 本地环境与敏感配置
 .env

@@ -45,8 +45,10 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
-    """登记 slow 标记，避免 pytest 输出未知标记警告。"""
+    """登记项目自定义标记，避免 pytest 输出未知标记警告。"""
     config.addinivalue_line("markers", "slow: 高耗时或高资源占用测试")
+    config.addinivalue_line("markers", "flow: 跨接口业务流程联调测试")
+    config.addinivalue_line("markers", "smoke: 核心链路冒烟测试")
 
 
 def pytest_collection_modifyitems(config, items):

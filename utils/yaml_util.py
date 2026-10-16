@@ -1,5 +1,7 @@
 # 文件读取工具
 import yaml
+import os
+from pathlib import Path
 from pydantic import ValidationError
 
 from schemas.test_case import BaseApiCase
@@ -53,12 +55,45 @@ def load_data_yaml(filename):
     return validated_data
 
 
+# def load_env_config(filename="config.yaml"):
+#     """读取当前环境配置"""
+#     all_config = load_config_yaml(filename)
+#     env = all_config.get("envs")
+#     if not env:
+#         raise KeyError("config.yaml 中缺少 envs 配置")
+#     if env not in all_config:
+#         raise KeyError(f"config.yaml 中不存在环境配置：{env}")
+#     return all_config[env]
+
+
 def load_env_config(filename="config.yaml"):
-    """读取当前环境配置"""
-    all_config = load_config_yaml(filename)
-    env = all_config.get("envs")
+    """读取测试配置，允许 CI 指定配置文件和环境。"""
+    config_path_value = os.getenv("LAB_TEST_CONFIG")
+
+    config_path = (
+        Path(config_path_value).expanduser().resolve()
+        if config_path_value
+        else get_config_path(filename)
+    )
+
+    if not config_path.is_file():
+        raise FileNotFoundError(f"测试配置文件不存在：{config_path}")
+
+    all_config = load_yaml(config_path)
+    if not isinstance(all_config, dict):
+        raise ValueError("测试配置文件必须是 YAML 映射结构")
+
+    env = os.getenv("LAB_TEST_ENV") or all_config.get("envs")
     if not env:
-        raise KeyError("config.yaml 中缺少 envs 配置")
-    if env not in all_config:
-        raise KeyError(f"config.yaml 中不存在环境配置：{env}")
-    return all_config[env]
+        raise ValueError("未指定测试环境，请设置 envs 或 LAB_TEST_ENV")
+
+    env_config = all_config.get(env)
+    if not isinstance(env_config, dict):
+        raise ValueError(f"测试环境配置不存在或格式错误：{env}")
+
+    required = ("base_url", "db", "account", "upload_dir")
+    missing = [key for key in required if not env_config.get(key)]
+    if missing:
+        raise ValueError(f"测试环境 {env} 缺少配置：{', '.join(missing)}")
+
+    return env_config
