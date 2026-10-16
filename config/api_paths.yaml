@@ -118,3 +118,7 @@ files:
     method: POST
     path: /api/files/upload
     desc: 上传文件
+  access:
+    method: GET
+    path: /uploads/{filename}
+    desc: 访问已上传文件

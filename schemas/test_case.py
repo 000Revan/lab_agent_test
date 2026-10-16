@@ -1,6 +1,14 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StrictInt,
+    StrictStr,
+    model_validator,
+)
 
 TestRole = Literal[
     "anonymous",
@@ -11,6 +19,7 @@ TestRole = Literal[
 ]
 
 DataTypeName = Literal["str", "int", "float", "bool", "dict", "list", "null"]
+ResponseType = Literal["json", "binary"]
 
 
 class ApiResponseContract(BaseModel):
@@ -29,8 +38,9 @@ class ResponseExpectation(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     http_status: StrictInt = Field(ge=100, le=599)
-    code: StrictInt
-    message: StrictStr
+    response_type: ResponseType = "json"
+    code: StrictInt | None = None
+    message: StrictStr | None = None
     data: Any = None
     data_keys: list[StrictStr] = Field(default_factory=list)
     data_fields: dict[str, Any] = Field(default_factory=dict)
@@ -48,6 +58,16 @@ class ResponseExpectation(BaseModel):
         )
         if "data" in self.model_fields_set and any(detail_fields):
             raise ValueError("expect.data 不能与 data_keys/data_fields/data_types/nested_data_keys 同时使用")
+        if self.response_type == "json":
+            if self.code is None or self.message is None:
+                raise ValueError("JSON 响应必须配置 expect.code 和 expect.message")
+        elif (
+            self.code is not None
+            or self.message is not None
+            or "data" in self.model_fields_set
+            or any(detail_fields)
+        ):
+            raise ValueError("二进制响应只能配置 http_status 和 response_type")
         return self
 
 
@@ -58,12 +78,17 @@ class DatabaseExpectation(BaseModel):
 
     fields: dict[str, Any] = Field(default_factory=dict)
     password_plaintext: StrictStr | None = None
+    exists: StrictBool | None = None
 
     @model_validator(mode="after")
     def validate_verification_rule(self):
         """数据库断言至少需要配置一种校验规则。"""
-        if not self.fields and self.password_plaintext is None:
-            raise ValueError("db_verify 至少需要配置 fields 或 password_plaintext")
+        if not self.fields and self.password_plaintext is None and self.exists is None:
+            raise ValueError(
+                "db_verify 至少需要配置 fields、password_plaintext 或 exists"
+            )
+        if self.exists is False and (self.fields or self.password_plaintext is not None):
+            raise ValueError("db_verify.exists=false 时不能再校验记录字段或密码")
         return self
 
 

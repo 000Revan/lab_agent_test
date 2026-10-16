@@ -1,1 +1,111 @@
 # 文件上传相关测试数据
+
+file_upload_success:
+  - title: "上传允许后缀图片成功"
+    role: user
+    payload:
+      filename: "avatar.png"
+      content_type: "image/png"
+      content_kind: "png"
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - original_name
+        - disk_name
+        - size
+        - url
+      data_types:
+        original_name: str
+        disk_name: str
+        size: int
+        url: str
+
+  - title: "上传允许后缀PDF成功"
+    role: user
+    payload:
+      filename: "document.pdf"
+      content_type: "application/pdf"
+      content_kind: "pdf"
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - original_name
+        - disk_name
+        - size
+        - url
+      data_types:
+        original_name: str
+        disk_name: str
+        size: int
+        url: str
+
+  - title: "未登录上传允许后缀文件成功"
+    role: anonymous
+    payload:
+      filename: "anonymous.png"
+      content_type: "image/png"
+      content_kind: "png"
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - original_name
+        - disk_name
+        - size
+        - url
+      data_types:
+        original_name: str
+        disk_name: str
+        size: int
+        url: str
+
+file_upload_fail:
+  - title: "上传不支持的exe后缀失败"
+    role: anonymous
+    payload:
+      filename: "program.exe"
+      content_type: "application/octet-stream"
+      content_kind: "exe"
+    expect:
+      http_status: 200
+      code: 500
+      message: "不支持的文件后缀:.exe"
+      data: null
+
+  - title: "缺少file字段失败"
+    role: anonymous
+    expect:
+      http_status: 422
+      code: 422
+      message: "请求参数校验错误"
+      data: null
+
+  - title: "上传超过100MB文件失败"
+    role: anonymous
+    payload:
+      filename: "oversize.png"
+      content_type: "image/png"
+      content_kind: "png"
+      size_bytes: 104857601
+      slow: true
+    expect:
+      http_status: 200
+      code: 500
+      message: "文件大小不能超过100MB"
+      data: null
+
+file_access_success:
+  - title: "访问已上传文件URL成功"
+    role: anonymous
+    payload:
+      filename: "access.png"
+      content_type: "image/png"
+      content_kind: "png"
+    expect:
+      http_status: 200
+      response_type: binary

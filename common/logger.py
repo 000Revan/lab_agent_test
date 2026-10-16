@@ -1,5 +1,4 @@
 # 日志封装，负责控制台/文件日志、敏感信息脱敏
-from copy import deepcopy
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -31,6 +30,13 @@ DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 def mask_sensitive(data: Any) -> Any:
     """递归信息脱敏"""
+    if isinstance(data, (bytes, bytearray, memoryview)):
+        return f"<{type(data).__name__} length={len(data)}>"
+
+    if hasattr(data, "read"):
+        name = getattr(data, "name", None)
+        return f"<file stream name={name!r}>"
+
     # 如果是字典
     if isinstance(data, dict):
         result = {}
@@ -60,10 +66,10 @@ def mask_sensitive(data: Any) -> Any:
 def safe_log_data(data: Any) -> Any:
     """
     安全日志数据入口
-    通过深拷贝，确保日志脱敏不会影响真实请求数据或响应数据
+    递归创建安全副本，避免输出敏感字段、文件内容或大段二进制数据。
     """
     try:
-        return mask_sensitive(deepcopy(data))
+        return mask_sensitive(data)
     except Exception:
         return str(data)
 

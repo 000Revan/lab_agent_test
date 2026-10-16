@@ -17,6 +17,18 @@ update_user_profile_case = (
 update_user_password_case = (
     user_data["user_password_update_success"] + user_data["user_password_update_fail"]
 )
+admin_list_users_case = (
+    user_data["admin_user_list_success"] + user_data["admin_user_list_fail"]
+)
+admin_create_user_case = (
+    user_data["admin_user_create_success"] + user_data["admin_user_create_fail"]
+)
+admin_update_user_case = (
+    user_data["admin_user_update_success"] + user_data["admin_user_update_fail"]
+)
+admin_delete_user_case = (
+    user_data["admin_user_delete_success"] + user_data["admin_user_delete_fail"]
+)
 
 pytestmark = [
     allure.epic("实验室预约系统"),
@@ -83,75 +95,103 @@ class TestUserApi:
                 assert_database_expectation(user, case["db_verify"])
 
     @allure.story("获取用户列表接口")
-    def test_admin_list_users(self, api_factory):
+    @pytest.mark.parametrize(
+        "case",
+        admin_list_users_case,
+        ids=[case["title"] for case in admin_list_users_case],
+    )
+    def test_admin_list_users(self, api_factory, case):
         """管理员查询用户列表用例"""
-        user_api = api_factory("user", role="admin")
-        payload = {"page": 1, "pagesize": 10}
-        expect = {
-            "http_status": 200,
-            "code": 200,
-            "message": "请求成功",
-            "data_keys": ["list", "total"],
-        }
-        res = user_api.list(payload)
-        assert_common_response(res, expect)
+        user_api = api_factory("user", role=case["role"])
+        with allure.step("发送获取用户列表请求"):
+            res = user_api.list(case.get("payload"))
+        with allure.step("断言用户列表响应"):
+            assert_common_response(res, case["expect"])
 
     @allure.story("管理员创建用户接口")
-    def test_admin_create_user(self, api_factory, delete_test_user_by_username):
+    @pytest.mark.parametrize(
+        "case",
+        admin_create_user_case,
+        ids=[case["title"] for case in admin_create_user_case],
+    )
+    def test_admin_create_user(
+        self,
+        api_factory,
+        resolve_case_references,
+        delete_test_user_by_username,
+        query_user,
+        case,
+    ):
         """管理员创建用户用例"""
-        user_api = api_factory("user", role="admin")
-        payload = {
-            "username": "test_admin_create_user",
-            "name": "管理员创建用户",
-            "email": "xxx@163.com",
-            "phone": "13333333333",
-        }
-        delete_test_user_by_username(payload["username"])
-        expect = {
-            "http_status": 200,
-            "code": 200,
-            "message": "请求成功",
-            "data_keys": [
-                "id",
-                "username",
-                "name",
-                "role",
-                "email",
-                "phone",
-                "avatar",
-                "status",
-            ],
-        }
-        res = user_api.create(payload)
-        body = assert_common_response(res, expect)
+        resolved_case = resolve_case_references(case)
+        payload = resolved_case.get("payload") or {}
+        username = payload.get("username")
+        if username:
+            delete_test_user_by_username(username)
+
+        user_api = api_factory("user", role=resolved_case["role"])
+        with allure.step("发送管理员创建用户请求"):
+            res = user_api.create(payload)
+        with allure.step("断言创建用户响应"):
+            assert_common_response(res, resolved_case["expect"])
+
+        if "db_verify" in resolved_case:
+            with allure.step("断言创建后的数据库记录"):
+                user = query_user(username=username)
+                assert_database_expectation(user, resolved_case["db_verify"])
 
     @allure.story("管理员修改用户信息接口")
-    def test_admin_update_user(self, api_factory, temp_user_account):
+    @pytest.mark.parametrize(
+        "case",
+        admin_update_user_case,
+        ids=[case["title"] for case in admin_update_user_case],
+    )
+    def test_admin_update_user(
+        self,
+        api_factory,
+        resolve_case_references,
+        query_user,
+        case,
+    ):
         """管理员修改指定用户用例"""
-        user_id = temp_user_account.get("id")
-        payload = {
-            "name": "管理员修改测试",
-            "email": "ddd@163.com",
-            "status": 1,
-            "role": "admin",
-        }
-        expect = {
-            "http_status": 200,
-            "code": 200,
-            "message": "请求成功",
-        }
-        user_api = api_factory("user", role="admin")
-        res = user_api.update_by_id(user_id, payload)
-        body = assert_common_response(res, expect)
+        resolved_case = resolve_case_references(case)
+        user_id = resolved_case["path_params"]["user_id"]
+        user_api = api_factory("user", role=resolved_case["role"])
+
+        with allure.step("发送管理员修改用户请求"):
+            res = user_api.update_by_id(user_id, resolved_case.get("payload"))
+        with allure.step("断言修改用户响应"):
+            assert_common_response(res, resolved_case["expect"])
+
+        if "db_verify" in resolved_case:
+            with allure.step("断言修改后的数据库记录"):
+                user = query_user(user_id=user_id)
+                assert_database_expectation(user, resolved_case["db_verify"])
 
     @allure.story("管理员删除用户接口")
-    def test_admin_delete_user(self, api_factory, temp_user_account):
+    @pytest.mark.parametrize(
+        "case",
+        admin_delete_user_case,
+        ids=[case["title"] for case in admin_delete_user_case],
+    )
+    def test_admin_delete_user(
+        self,
+        api_factory,
+        resolve_case_references,
+        query_user,
+        case,
+    ):
         """管理员删除用户用例"""
-        expect = {
-            "http_status": 200,
-            "code": 200,
-            "message": "请求成功",
-        }
-        user_api = api_factory("user", role="temp_admin")
-        res = user_api.delete(temp_user_account.get("id"))
-        body = assert_common_response(res, expect)
+        resolved_case = resolve_case_references(case)
+        user_id = resolved_case["path_params"]["user_id"]
+        user_api = api_factory("user", role=resolved_case["role"])
+
+        with allure.step("发送管理员删除用户请求"):
+            res = user_api.delete(user_id)
+        with allure.step("断言删除用户响应"):
+            assert_common_response(res, resolved_case["expect"])
+
+        if "db_verify" in resolved_case:
+            with allure.step("断言删除后的数据库记录"):
+                user = query_user(user_id=user_id)
+                assert_database_expectation(user, resolved_case["db_verify"])

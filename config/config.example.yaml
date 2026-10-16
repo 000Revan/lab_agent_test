@@ -5,6 +5,8 @@ test:
   # 被测服务地址和请求超时时间（秒）
   base_url: "http://127.0.0.1:8000"
   timeout: 10
+  # 本地集成测试用于清理上传文件；必须指向被测后端实际上传目录
+  upload_dir: "G:/path/to/lab-agent/backend/uploads"
 
   # 测试数据库连接信息
   db:

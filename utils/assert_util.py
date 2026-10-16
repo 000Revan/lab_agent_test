@@ -88,9 +88,12 @@ def _assert_expected_data(body, expectation):
 
 
 def assert_common_response(response, expect):
-    """按公共响应契约完成 HTTP、基础响应和 data 规则断言。"""
+    """按公共响应契约完成 HTTP、JSON 或二进制响应断言。"""
     expectation = _parse_response_expectation(expect)
     assert_http_status(response, expectation.http_status)
+
+    if expectation.response_type == "binary":
+        return response.content
 
     try:
         body = response.json()
@@ -188,6 +191,12 @@ def assert_database_expectation(record, expected):
         )
     except ValidationError as exc:
         raise AssertionError(f"数据库预期不符合测试数据契约：\n{exc}") from exc
+
+    if expectation.exists is False:
+        assert record is None, f"数据库记录应该不存在，实际为{record!r}"
+        return
+    if expectation.exists is True:
+        assert record is not None, "数据库记录应该存在，实际查询结果为空"
 
     if expectation.fields:
         assert_record_fields_equal(record, expectation.fields)

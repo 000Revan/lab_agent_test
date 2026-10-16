@@ -1,1 +1,360 @@
 # 预约模块测试数据
+# 来源：智能实验室预约系统接口测试用例.xlsx。
+
+reservation_create_success:
+  - title: "普通用户创建实验室预约成功"
+    role: user
+    payload:
+      lab_id: "${temp_lab.id}"
+      date: "${reservation_dates.tomorrow}"
+      start_time: "09:00"
+      end_time: "10:00"
+      remark: "自动化实验室预约"
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data: null
+    db_verify:
+      exists: true
+      fields:
+        user_id: "${prepared_accounts.user.id}"
+        lab_id: "${temp_lab.id}"
+        equipment_id: null
+        date: "${reservation_dates.tomorrow}"
+        start_time: "09:00"
+        end_time: "10:00"
+        remark: "自动化实验室预约"
+        status: 0
+
+  - title: "普通用户创建设备预约成功"
+    role: user
+    payload:
+      lab_id: "${temp_equipment.lab_id}"
+      equipment_id: "${temp_equipment.id}"
+      date: "${reservation_dates.tomorrow}"
+      start_time: "09:00"
+      end_time: "10:00"
+      remark: "自动化设备预约"
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data: null
+    db_verify:
+      exists: true
+      fields:
+        user_id: "${prepared_accounts.user.id}"
+        lab_id: "${temp_equipment.lab_id}"
+        equipment_id: "${temp_equipment.id}"
+        date: "${reservation_dates.tomorrow}"
+        start_time: "09:00"
+        end_time: "10:00"
+        remark: "自动化设备预约"
+        status: 0
+
+reservation_create_fail:
+  - title: "未登录创建预约失败"
+    role: anonymous
+    payload:
+      lab_id: "${temp_lab.id}"
+      date: "${reservation_dates.tomorrow}"
+      start_time: "09:00"
+      end_time: "10:00"
+    expect:
+      http_status: 401
+      code: 401
+      message: "Not authenticated"
+      data: null
+
+  - title: "预约日期小于当前日期失败"
+    role: user
+    payload:
+      lab_id: "${temp_lab.id}"
+      date: "${reservation_dates.yesterday}"
+      start_time: "09:00"
+      end_time: "10:00"
+    expect:
+      http_status: 200
+      code: 500
+      message: "预约日期不能小于当前日期"
+      data: null
+
+  - title: "预约结束时间小于开始时间失败"
+    role: user
+    payload:
+      lab_id: "${temp_lab.id}"
+      date: "${reservation_dates.tomorrow}"
+      start_time: "10:00"
+      end_time: "09:00"
+    expect:
+      http_status: 200
+      code: 500
+      message: "预约的结束时间不能小于开始时间"
+      data: null
+
+  - title: "预约不存在实验室失败"
+    role: user
+    payload:
+      lab_id: "${not_exists_reservation_lab_id}"
+      date: "${reservation_dates.tomorrow}"
+      start_time: "09:00"
+      end_time: "10:00"
+    expect:
+      http_status: 200
+      code: 500
+      message: "实验室不存在"
+      data: null
+
+  - title: "预约已关闭实验室失败"
+    role: user
+    payload:
+      lab_id: "${closed_lab.id}"
+      date: "${reservation_dates.tomorrow}"
+      start_time: "09:00"
+      end_time: "10:00"
+    expect:
+      http_status: 200
+      code: 500
+      message: "实验室已关闭"
+      data: null
+
+  - title: "预约开始时间早于实验室开放时间失败"
+    role: user
+    payload:
+      lab_id: "${temp_lab.id}"
+      date: "${reservation_dates.tomorrow}"
+      start_time: "07:30"
+      end_time: "08:30"
+    expect:
+      http_status: 200
+      code: 500
+      message: "预约开始时间不能早于实验室开放时间"
+      data: null
+
+  - title: "预约结束时间晚于实验室关闭时间失败"
+    role: user
+    payload:
+      lab_id: "${temp_lab.id}"
+      date: "${reservation_dates.tomorrow}"
+      start_time: "17:30"
+      end_time: "18:30"
+    expect:
+      http_status: 200
+      code: 500
+      message: "预约结束时间不能晚于实验室关闭时间"
+      data: null
+
+  - title: "预约不存在设备失败"
+    role: user
+    payload:
+      lab_id: "${temp_lab.id}"
+      equipment_id: "${not_exists_reservation_equipment_id}"
+      date: "${reservation_dates.tomorrow}"
+      start_time: "09:00"
+      end_time: "10:00"
+    expect:
+      http_status: 200
+      code: 500
+      message: "预约的实验室设备不存在"
+      data: null
+
+  - title: "预约不属于当前实验室的设备失败"
+    role: user
+    payload:
+      lab_id: "${temp_lab.id}"
+      equipment_id: "${other_lab_equipment.equipment.id}"
+      date: "${reservation_dates.tomorrow}"
+      start_time: "09:00"
+      end_time: "10:00"
+    expect:
+      http_status: 200
+      code: 500
+      message: "设备不属于当前实验室"
+      data: null
+
+  - title: "预约维护中设备失败"
+    role: user
+    payload:
+      lab_id: "${maintenance_equipment.lab_id}"
+      equipment_id: "${maintenance_equipment.id}"
+      date: "${reservation_dates.tomorrow}"
+      start_time: "09:00"
+      end_time: "10:00"
+    expect:
+      http_status: 200
+      code: 500
+      message: "实验室设备维护中..."
+      data: null
+
+  - title: "同实验室同时间段预约冲突"
+    role: user
+    payload:
+      lab_id: "${conflict_reservation.lab_id}"
+      date: "${conflict_reservation.date}"
+      start_time: "09:30"
+      end_time: "10:30"
+    expect:
+      http_status: 200
+      code: 500
+      message: "该时段已预约"
+      data: null
+
+reservation_list_success:
+  - title: "普通用户只查询自己的预约列表"
+    role: user
+    payload:
+      page: 1
+      page_size: 10
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - list
+        - total
+      data_types:
+        list: list
+        total: int
+
+  - title: "管理员查询全部用户预约列表"
+    role: admin
+    payload:
+      page: 1
+      page_size: 10
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - list
+        - total
+      data_types:
+        list: list
+        total: int
+
+reservation_cancel_success:
+  - title: "预约本人取消待审核预约成功"
+    role: user
+    path_params:
+      reservation_id: "${pending_reservation.id}"
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data: null
+    db_verify:
+      exists: true
+      fields:
+        status: 3
+
+reservation_cancel_fail:
+  - title: "非预约本人取消预约无权限"
+    role: temp_user
+    path_params:
+      reservation_id: "${pending_reservation.id}"
+    expect:
+      http_status: 200
+      code: 403
+      message: "无权限"
+      data: null
+    db_verify:
+      exists: true
+      fields:
+        status: 0
+
+  - title: "取消非待审核预约失败"
+    role: user
+    path_params:
+      reservation_id: "${approved_reservation.id}"
+    expect:
+      http_status: 200
+      code: 500
+      message: "当前状态无法取消"
+      data: null
+    db_verify:
+      exists: true
+      fields:
+        status: 1
+
+reservation_audit_success:
+  - title: "管理员审核通过待审核预约成功"
+    role: admin
+    path_params:
+      reservation_id: "${pending_reservation.id}"
+    payload:
+      status: 1
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data: null
+    db_verify:
+      exists: true
+      fields:
+        status: 1
+
+  - title: "管理员审核拒绝待审核预约成功"
+    role: admin
+    path_params:
+      reservation_id: "${pending_reservation.id}"
+    payload:
+      status: 2
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data: null
+    db_verify:
+      exists: true
+      fields:
+        status: 2
+
+reservation_audit_fail:
+  - title: "普通用户审核预约无权限"
+    role: user
+    path_params:
+      reservation_id: "${pending_reservation.id}"
+    payload:
+      status: 1
+    expect:
+      http_status: 200
+      code: 403
+      message: "无权限访问"
+      data: null
+    db_verify:
+      exists: true
+      fields:
+        status: 0
+
+  - title: "审核状态不是1或2失败"
+    role: admin
+    path_params:
+      reservation_id: "${pending_reservation.id}"
+    payload:
+      status: 3
+    expect:
+      http_status: 200
+      code: 500
+      message: "审核状态错误"
+      data: null
+    db_verify:
+      exists: true
+      fields:
+        status: 0
+
+  - title: "审核非待审核预约失败"
+    role: admin
+    path_params:
+      reservation_id: "${approved_reservation.id}"
+    payload:
+      status: 1
+    expect:
+      http_status: 200
+      code: 500
+      message: "当前状态不支持审核"
+      data: null
+    db_verify:
+      exists: true
+      fields:
+        status: 1

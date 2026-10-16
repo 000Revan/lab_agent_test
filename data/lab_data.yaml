@@ -1,1 +1,299 @@
 # 实验室模块测试数据
+# 来源：智能实验室预约系统接口测试用例.xlsx。
+
+lab_list_success:
+  - title: "普通用户查询实验室列表成功"
+    role: user
+    payload:
+      page: 1
+      page_size: 10
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - list
+        - total
+      data_types:
+        list: list
+        total: int
+
+  - title: "按status过滤开放实验室成功"
+    role: user
+    payload:
+      status: 1
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - list
+        - total
+      data_types:
+        list: list
+        total: int
+
+  - title: "按keywords匹配实验室名称成功"
+    role: user
+    payload:
+      keywords: "${temp_lab.name}"
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - list
+        - total
+      data_types:
+        list: list
+        total: int
+
+lab_list_fail:
+  - title: "未登录查询实验室列表失败"
+    role: anonymous
+    payload:
+      page: 1
+      page_size: 10
+    expect:
+      http_status: 401
+      code: 401
+      message: "Not authenticated"
+      data: null
+
+lab_detail_success:
+  - title: "查询存在实验室详情成功"
+    role: user
+    path_params:
+      lab_id: "${temp_lab.id}"
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - id
+        - name
+        - location
+        - capacity
+        - open_time
+        - close_time
+        - description
+        - img
+        - status
+      data_fields:
+        id: "${temp_lab.id}"
+        name: "${temp_lab.name}"
+
+lab_detail_fail:
+  - title: "查询不存在实验室详情失败"
+    role: user
+    path_params:
+      lab_id: "${not_exists_lab_id}"
+    expect:
+      http_status: 200
+      code: 500
+      message: "实验室不存在"
+      data: null
+
+lab_create_success:
+  - title: "管理员创建实验室成功"
+    role: admin
+    payload:
+      name: "${unique_lab_name}"
+      location: "A101"
+      capacity: 30
+      open_time: "08:00"
+      close_time: "18:00"
+      status: 1
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - id
+        - name
+        - location
+        - capacity
+        - open_time
+        - close_time
+        - description
+        - img
+        - status
+      data_fields:
+        name: "${unique_lab_name}"
+        location: "A101"
+        capacity: 30
+        open_time: "08:00"
+        close_time: "18:00"
+        status: 1
+    db_verify:
+      exists: true
+      fields:
+        name: "${unique_lab_name}"
+        location: "A101"
+        capacity: 30
+        open_time: "08:00"
+        close_time: "18:00"
+        status: 1
+
+  - title: "管理员创建容量为0的实验室成功"
+    role: admin
+    payload:
+      name: "${unique_lab_name}"
+      location: "A102"
+      capacity: 0
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_fields:
+        name: "${unique_lab_name}"
+        location: "A102"
+        capacity: 0
+        status: 1
+    db_verify:
+      exists: true
+      fields:
+        name: "${unique_lab_name}"
+        location: "A102"
+        capacity: 0
+        status: 1
+
+lab_create_fail:
+  - title: "普通用户创建实验室无权限"
+    role: user
+    payload:
+      name: "${unique_lab_name}"
+      location: "A101"
+      capacity: 30
+    expect:
+      http_status: 200
+      code: 403
+      message: "无权限访问"
+      data: null
+    db_verify:
+      exists: false
+
+  - title: "创建重复名称实验室失败"
+    role: admin
+    payload:
+      name: "${temp_lab.name}"
+      location: "A102"
+      capacity: 30
+    expect:
+      http_status: 200
+      code: 500
+      message: "实验室名称已存在"
+      data: null
+    db_verify:
+      exists: true
+      fields:
+        name: "${temp_lab.name}"
+        location: "${temp_lab.location}"
+        capacity: 30
+
+  - title: "创建实验室缺少name字段"
+    role: admin
+    payload:
+      location: "A101"
+      capacity: 30
+    expect:
+      http_status: 422
+      code: 422
+      message: "请求参数校验错误"
+      data: null
+
+lab_update_success:
+  - title: "管理员修改实验室成功"
+    role: admin
+    path_params:
+      lab_id: "${temp_lab.id}"
+    payload:
+      name: "${unique_lab_name}"
+      capacity: 50
+      status: 1
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_fields:
+        id: "${temp_lab.id}"
+        name: "${unique_lab_name}"
+        capacity: 50
+        status: 1
+    db_verify:
+      exists: true
+      fields:
+        name: "${unique_lab_name}"
+        capacity: 50
+        status: 1
+
+lab_update_fail:
+  - title: "普通用户修改实验室无权限"
+    role: user
+    path_params:
+      lab_id: "${temp_lab.id}"
+    payload:
+      name: "${unique_lab_name}"
+    expect:
+      http_status: 200
+      code: 403
+      message: "无权限访问"
+      data: null
+    db_verify:
+      exists: true
+      fields:
+        name: "${temp_lab.name}"
+        capacity: 30
+        status: 1
+
+  - title: "修改不存在实验室失败"
+    role: admin
+    path_params:
+      lab_id: "${not_exists_lab_id}"
+    payload:
+      name: "不存在"
+    expect:
+      http_status: 200
+      code: 500
+      message: "实验室不存在"
+      data: null
+    db_verify:
+      exists: false
+
+lab_delete_success:
+  - title: "管理员删除实验室成功"
+    role: admin
+    path_params:
+      lab_id: "${temp_lab.id}"
+    expect:
+      http_status: 200
+      code: 200
+      message: "删除成功"
+      data: null
+    db_verify:
+      exists: false
+
+lab_delete_fail:
+  - title: "普通用户删除实验室无权限"
+    role: user
+    path_params:
+      lab_id: "${temp_lab.id}"
+    expect:
+      http_status: 200
+      code: 403
+      message: "无权限访问"
+      data: null
+    db_verify:
+      exists: true
+
+  - title: "删除不存在实验室失败"
+    role: admin
+    path_params:
+      lab_id: "${not_exists_lab_id}"
+    expect:
+      http_status: 200
+      code: 500
+      message: "实验室不存在"
+      data: null
+    db_verify:
+      exists: false

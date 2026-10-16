@@ -1,5 +1,8 @@
 # 全局 fixture
 
+import re
+from collections.abc import Mapping
+
 import pytest
 from common.context import TestContext
 from common.logger import get_logger
@@ -7,7 +10,15 @@ from common.request_client import RequestClient
 from database.mysql_client import MySQLClient
 from utils.yaml_util import load_config_yaml, load_env_config
 from utils.account_util import validate_account_config, upsert_test_account
-from utils.test_data_util import create_test_user, delete_test_user, unique_name
+from utils.test_data_util import (
+    create_test_equipment,
+    create_test_lab,
+    create_test_user,
+    delete_test_equipment,
+    delete_test_lab,
+    delete_test_user,
+    unique_name,
+)
 from api.auth_api import AuthApi
 from api.user_api import UserApi
 from api.lab_api import LabApi
@@ -16,6 +27,80 @@ from api.reservation_api import ReservationApi
 from api.file_api import FileApi
 
 logger = get_logger("conftest")
+
+FIXTURE_REFERENCE_PATTERN = re.compile(
+    r"^\$\{(?P<fixture>[a-zA-Z_][a-zA-Z0-9_]*)"
+    r"(?P<path>(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\}$"
+)
+
+
+def pytest_addoption(parser):
+    """注册需要显式开启的慢用例选项。"""
+    parser.addoption(
+        "--run-slow",
+        action="store_true",
+        default=False,
+        help="运行包含大文件上传等高开销慢用例",
+    )
+
+
+def pytest_configure(config):
+    """登记 slow 标记，避免 pytest 输出未知标记警告。"""
+    config.addinivalue_line("markers", "slow: 高耗时或高资源占用测试")
+
+
+def pytest_collection_modifyitems(config, items):
+    """普通回归默认跳过 slow 用例，使用 --run-slow 显式开启。"""
+    if config.getoption("--run-slow"):
+        return
+
+    skip_slow = pytest.mark.skip(reason="慢用例需使用 --run-slow 显式执行")
+    for item in items:
+        if "slow" in item.keywords:
+            item.add_marker(skip_slow)
+
+
+def _resolve_fixture_reference(value, request):
+    """递归解析 YAML 中的 ${fixture.field} 引用，不执行任意表达式。"""
+    if isinstance(value, dict):
+        return {
+            key: _resolve_fixture_reference(item, request)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_resolve_fixture_reference(item, request) for item in value]
+    if not isinstance(value, str):
+        return value
+
+    matched = FIXTURE_REFERENCE_PATTERN.fullmatch(value)
+    if not matched:
+        return value
+
+    resolved = request.getfixturevalue(matched.group("fixture"))
+    path = matched.group("path").lstrip(".")
+    if not path:
+        return resolved
+
+    for field_name in path.split("."):
+        if isinstance(resolved, Mapping):
+            if field_name not in resolved:
+                raise KeyError(f"fixture 引用字段不存在：{value}")
+            resolved = resolved[field_name]
+        else:
+            if not hasattr(resolved, field_name):
+                raise AttributeError(f"fixture 引用属性不存在：{value}")
+            resolved = getattr(resolved, field_name)
+    return resolved
+
+
+@pytest.fixture(scope="function")
+def resolve_case_references(request):
+    """把参数化用例中的 fixture 引用转换为本次测试的真实值。"""
+
+    def resolve(case):
+        return _resolve_fixture_reference(case, request)
+
+    return resolve
 
 
 @pytest.fixture(scope="session")
@@ -202,6 +287,43 @@ def temp_admin_account(db):
     yield admin
 
     delete_test_user(db, user_id=admin["id"])
+
+
+@pytest.fixture(scope="function")
+def temp_lab(db):
+    """创建用例级临时实验室，供实验室、设备和预约模块复用。"""
+    lab = create_test_lab(
+        db=db,
+        name=unique_name("temp_lab"),
+        location="自动化测试楼 A101",
+        capacity=30,
+        open_time="08:00",
+        close_time="18:00",
+        description="自动化测试临时实验室",
+        status=1,
+    )
+
+    yield lab
+
+    delete_test_lab(db, lab_id=lab["id"])
+
+
+@pytest.fixture(scope="function")
+def temp_equipment(db, temp_lab):
+    """创建用例级临时设备，供设备和预约模块复用。"""
+    equipment = create_test_equipment(
+        db=db,
+        lab_id=temp_lab["id"],
+        name=unique_name("temp_equipment"),
+        description="自动化测试临时设备",
+        spec="AUTO-SPEC",
+        quantity=5,
+        status=1,
+    )
+
+    yield equipment
+
+    delete_test_equipment(db, equipment_id=equipment["id"])
 
 
 @pytest.fixture(scope="function")

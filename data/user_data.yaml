@@ -242,7 +242,7 @@ admin_user_list_success:
     role: admin
     payload:
       page: 1
-      pagesize: 10
+      page_size: 10
     expect:
       http_status: 200
       code: 200
@@ -250,12 +250,15 @@ admin_user_list_success:
       data_keys:
         - list
         - total
+      data_types:
+        list: list
+        total: int
 
   - title: "获取用户列表成功-模糊查询"
     role: admin
     payload:
       page: 1
-      pagesize: 11
+      page_size: 11
       keywords: "测试"
     expect:
       http_status: 200
@@ -264,6 +267,9 @@ admin_user_list_success:
       data_keys:
         - list
         - total
+      data_types:
+        list: list
+        total: int
 
   - title: "获取用户列表成功-无参数"
     role: admin
@@ -275,11 +281,14 @@ admin_user_list_success:
       data_keys:
         - list
         - total
+      data_types:
+        list: list
+        total: int
   - title: "获取用户列表成功-page为负数"
     role: admin
     payload:
       page: -1
-      pagesize: 10
+      page_size: 10
     expect:
       http_status: 200
       code: 200
@@ -287,12 +296,15 @@ admin_user_list_success:
       data_keys:
         - list
         - total
+      data_types:
+        list: list
+        total: int
 
   - title: "获取用户列表成功-page_size为负数"
     role: admin
     payload:
       page: 1
-      pagesize: -10
+      page_size: -10
     expect:
       http_status: 200
       code: 200
@@ -300,13 +312,16 @@ admin_user_list_success:
       data_keys:
         - list
         - total
+      data_types:
+        list: list
+        total: int
 
 admin_user_list_fail:
   - title: "获取用户列表失败-page为小数"
     role: admin
     payload:
       page: 1.1
-      pagesize: 10
+      page_size: 10
     expect:
       http_status: 422
       code: 422
@@ -317,7 +332,7 @@ admin_user_list_fail:
     role: admin
     payload:
       page: 1
-      pagesize: 10.1
+      page_size: 10.1
     expect:
       http_status: 422
       code: 422
@@ -328,7 +343,7 @@ admin_user_list_fail:
     role: admin
     payload:
       page: ""
-      pagesize: 10
+      page_size: 10
     expect:
       http_status: 422
       code: 422
@@ -339,7 +354,7 @@ admin_user_list_fail:
     role: admin
     payload:
       page: 1
-      pagesize: ""
+      page_size: ""
     expect:
       http_status: 422
       code: 422
@@ -350,7 +365,7 @@ admin_user_list_fail:
     role: anonymous
     payload:
       page: 1
-      pagesize: 10
+      page_size: 10
     expect:
       http_status: 401
       code: 401
@@ -361,7 +376,7 @@ admin_user_list_fail:
     role: user
     payload:
       page: 1
-      pagesize: 11
+      page_size: 11
     expect:
       http_status: 200
       code: 403
@@ -372,7 +387,7 @@ admin_user_create_success:
   - title: "管理员创建用户成功"
     role: admin
     payload:
-      username: test_admin_create_user
+      username: "${unique_user_username}"
       name: "管理员创建用户"
       email: "xxx@163.com"
       phone: "13333333333"
@@ -390,20 +405,27 @@ admin_user_create_success:
         - avatar
         - status
       data_fields:
-        id: 11
-        username: test_admin_create_user
-        name: "管理员创建测试"
+        username: "${unique_user_username}"
+        name: "管理员创建用户"
         role: student
         email: "xxx@163.com"
         phone: "13333333333"
-        avatar: null
+        status: 1
+    db_verify:
+      exists: true
+      fields:
+        username: "${unique_user_username}"
+        name: "管理员创建用户"
+        role: student
+        email: "xxx@163.com"
+        phone: "13333333333"
         status: 1
 
 admin_user_create_fail:
   - title: "管理员创建用户失败-用户已存在"
     role: admin
     payload:
-      username: test_admin_create_user
+      username: "${temp_user_account.username}"
       name: "管理员创建用户"
       email: "xxx@163.com"
       phone: "13333333333"
@@ -416,7 +438,6 @@ admin_user_create_fail:
   - title: "管理员创建用户失败-字段缺失"
     role: admin
     payload:
-      username: test_admin_create_user
       name: "管理员创建用户"
     expect:
       http_status: 422
@@ -427,7 +448,7 @@ admin_user_create_fail:
   - title: "管理员创建用户失败-管理员未登录"
     role: anonymous
     payload:
-      username: test_admin_create_user
+      username: "${unique_user_username}"
       name: "管理员创建用户"
       email: "xxx@163.com"
       phone: "13333333333"
@@ -440,7 +461,7 @@ admin_user_create_fail:
   - title: "创建用户失败-用户访问管理员接口"
     role: user
     payload:
-      username: test_admin_create_user
+      username: "${unique_user_username}"
       name: "管理员创建用户"
       email: "xxx@163.com"
       phone: "13333333333"
@@ -472,16 +493,19 @@ admin_user_update_success:
         - avatar
         - status
       data_fields:
-        id: 11
-        username: test_admin_create_user
         name: "管理员修改测试"
         role: admin
         email: "ddd@163.com"
-        phone: "13333333333"
-        avatar: null
         status: 1
     path_params:
-      user_id: existing_user_id
+      user_id: "${temp_user_account.id}"
+    db_verify:
+      exists: true
+      fields:
+        name: "管理员修改测试"
+        role: admin
+        email: "ddd@163.com"
+        status: 1
 
   - title: "管理员修改用户信息成功-输入不存在字段，但是请求成功但不生效"
     role: admin
@@ -505,16 +529,19 @@ admin_user_update_success:
         - avatar
         - status
       data_fields:
-        id: 11
-        username: test_admin_create_user
         name: "管理员修改测试"
         role: admin
         email: "ddd@163.com"
-        phone: "13333333333"
-        avatar: null
         status: 1
     path_params:
-      user_id: existing_user_id
+      user_id: "${temp_user_account.id}"
+    db_verify:
+      exists: true
+      fields:
+        name: "管理员修改测试"
+        role: admin
+        email: "ddd@163.com"
+        status: 1
 
 admin_user_update_fail:
   - title: "管理员修改用户信息成功-用户不存在"
@@ -530,7 +557,9 @@ admin_user_update_fail:
       message: "账号不存在"
       data: null
     path_params:
-      user_id: not_exists_user_id
+      user_id: "${not_exists_user_id}"
+    db_verify:
+      exists: false
 
   - title: "管理员修改用户信息失败-管理员未登录"
     role: anonymous
@@ -545,7 +574,13 @@ admin_user_update_fail:
       message: "Not authenticated"
       data: null
     path_params:
-      user_id: existing_user_id
+      user_id: "${temp_user_account.id}"
+    db_verify:
+      exists: true
+      fields:
+        name: "临时普通用户"
+        role: student
+        status: 1
 
   - title: "修改用户信息失败-用户访问管理员接口"
     role: user
@@ -560,7 +595,13 @@ admin_user_update_fail:
       message: "无权限访问"
       data: null
     path_params:
-      user_id: existing_user_id
+      user_id: "${temp_user_account.id}"
+    db_verify:
+      exists: true
+      fields:
+        name: "临时普通用户"
+        role: student
+        status: 1
 
 admin_user_delete_success:
   - title: "管理员删除用户成功"
@@ -572,7 +613,9 @@ admin_user_delete_success:
       message: "请求成功"
       data: null
     path_params:
-      user_id: created_user_id
+      user_id: "${temp_user_account.id}"
+    db_verify:
+      exists: false
 
 admin_user_delete_fail:
   - title: "管理员删除用户失败-管理员未登录"
@@ -584,7 +627,9 @@ admin_user_delete_fail:
       message: "Not authenticated"
       data: null
     path_params:
-      user_id: existing_user_id
+      user_id: "${temp_user_account.id}"
+    db_verify:
+      exists: true
 
   - title: "管理员删除用户失败-用户不存在"
     role: admin
@@ -595,7 +640,9 @@ admin_user_delete_fail:
       message: "用户不存在"
       data: null
     path_params:
-      user_id: not_exists_user_id
+      user_id: "${not_exists_user_id}"
+    db_verify:
+      exists: false
 
   - title: "管理员删除用户失败-删除当前账户"
     role: temp_admin
@@ -606,7 +653,9 @@ admin_user_delete_fail:
       message: "不能删除当前登录的账号"
       data: null
     path_params:
-      user_id: current_user_id
+      user_id: "${temp_admin_account.id}"
+    db_verify:
+      exists: true
 
   - title: "删除用户失败-用户访问管理员接口"
     role: user
@@ -617,4 +666,6 @@ admin_user_delete_fail:
       message: "无权限访问"
       data: null
     path_params:
-      user_id: existing_user_id
+      user_id: "${temp_user_account.id}"
+    db_verify:
+      exists: true

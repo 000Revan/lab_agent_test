@@ -1,1 +1,262 @@
 # 设备模块测试数据
+# 来源：智能实验室预约系统接口测试用例.xlsx。
+
+equipment_list_success:
+  - title: "普通用户查询设备列表成功"
+    role: user
+    payload:
+      page: 1
+      page_size: 10
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - list
+        - total
+      data_types:
+        list: list
+        total: int
+
+  - title: "按lab_id过滤设备成功"
+    role: user
+    payload:
+      lab_id: "${temp_equipment.lab_id}"
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - list
+        - total
+      data_types:
+        list: list
+        total: int
+
+  - title: "按keywords匹配设备名称成功"
+    role: user
+    payload:
+      keywords: "${temp_equipment.name}"
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - list
+        - total
+      data_types:
+        list: list
+        total: int
+
+equipment_list_fail:
+  - title: "未登录查询设备列表失败"
+    role: anonymous
+    payload:
+      page: 1
+      page_size: 10
+    expect:
+      http_status: 401
+      code: 401
+      message: "Not authenticated"
+      data: null
+
+equipment_create_success:
+  - title: "管理员创建设备成功"
+    role: admin
+    payload:
+      lab_id: "${temp_lab.id}"
+      name: "${unique_equipment_name}"
+      description: "自动化创建测试设备"
+      spec: "AUTO-CREATE"
+      quantity: 5
+      status: 1
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_keys:
+        - id
+        - lab_id
+        - lab_name
+        - name
+        - description
+        - img
+        - spec
+        - quantity
+        - status
+      data_fields:
+        lab_id: "${temp_lab.id}"
+        lab_name: "${temp_lab.name}"
+        name: "${unique_equipment_name}"
+        description: "自动化创建测试设备"
+        spec: "AUTO-CREATE"
+        quantity: 5
+        status: 1
+    db_verify:
+      exists: true
+      fields:
+        lab_id: "${temp_lab.id}"
+        name: "${unique_equipment_name}"
+        description: "自动化创建测试设备"
+        spec: "AUTO-CREATE"
+        quantity: 5
+        status: 1
+
+equipment_create_fail:
+  - title: "普通用户创建设备无权限"
+    role: user
+    payload:
+      lab_id: "${temp_lab.id}"
+      name: "${unique_equipment_name}"
+    expect:
+      http_status: 200
+      code: 403
+      message: "无权限访问"
+      data: null
+    db_verify:
+      exists: false
+
+  - title: "同一实验室创建设备重名失败"
+    role: admin
+    payload:
+      lab_id: "${temp_equipment.lab_id}"
+      name: "${temp_equipment.name}"
+    expect:
+      http_status: 200
+      code: 500
+      message: "实验室设备已存在"
+      data: null
+    db_verify:
+      exists: true
+      fields:
+        lab_id: "${temp_equipment.lab_id}"
+        name: "${temp_equipment.name}"
+        quantity: 5
+        status: 1
+
+  - title: "使用不存在lab_id创建设备失败"
+    role: admin
+    payload:
+      lab_id: "${not_exists_equipment_lab_id}"
+      name: "${unique_equipment_name}"
+    expect:
+      http_status: 200
+      code: 500
+      message: "实验室不存在"
+      data: null
+    db_verify:
+      exists: false
+
+  - title: "创建设备缺少lab_id字段"
+    role: admin
+    payload:
+      name: "${unique_equipment_name}"
+    expect:
+      http_status: 422
+      code: 422
+      message: "请求参数校验错误"
+      data: null
+
+equipment_update_success:
+  - title: "管理员修改设备成功"
+    role: admin
+    path_params:
+      equipment_id: "${temp_equipment.id}"
+    payload:
+      name: "${unique_equipment_name}"
+      description: "自动化修改测试设备"
+      spec: "AUTO-UPDATE"
+      quantity: 10
+      status: 1
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data_fields:
+        id: "${temp_equipment.id}"
+        lab_id: "${temp_equipment.lab_id}"
+        name: "${unique_equipment_name}"
+        description: "自动化修改测试设备"
+        spec: "AUTO-UPDATE"
+        quantity: 10
+        status: 1
+    db_verify:
+      exists: true
+      fields:
+        lab_id: "${temp_equipment.lab_id}"
+        name: "${unique_equipment_name}"
+        description: "自动化修改测试设备"
+        spec: "AUTO-UPDATE"
+        quantity: 10
+        status: 1
+
+equipment_update_fail:
+  - title: "普通用户修改设备无权限"
+    role: user
+    path_params:
+      equipment_id: "${temp_equipment.id}"
+    payload:
+      name: "${unique_equipment_name}"
+    expect:
+      http_status: 200
+      code: 403
+      message: "无权限访问"
+      data: null
+    db_verify:
+      exists: true
+      fields:
+        name: "${temp_equipment.name}"
+        quantity: 5
+        status: 1
+
+  - title: "修改不存在设备失败"
+    role: admin
+    path_params:
+      equipment_id: "${not_exists_equipment_id}"
+    payload:
+      name: "不存在"
+    expect:
+      http_status: 200
+      code: 500
+      message: "实验室设备不存在"
+      data: null
+    db_verify:
+      exists: false
+
+equipment_delete_success:
+  - title: "管理员删除设备成功"
+    role: admin
+    path_params:
+      equipment_id: "${temp_equipment.id}"
+    expect:
+      http_status: 200
+      code: 200
+      message: "请求成功"
+      data: null
+    db_verify:
+      exists: false
+
+equipment_delete_fail:
+  - title: "普通用户删除设备无权限"
+    role: user
+    path_params:
+      equipment_id: "${temp_equipment.id}"
+    expect:
+      http_status: 200
+      code: 403
+      message: "无权限访问"
+      data: null
+    db_verify:
+      exists: true
+
+  - title: "删除不存在设备失败"
+    role: admin
+    path_params:
+      equipment_id: "${not_exists_equipment_id}"
+    expect:
+      http_status: 200
+      code: 500
+      message: "实验室设备不存在"
+      data: null
+    db_verify:
+      exists: false
