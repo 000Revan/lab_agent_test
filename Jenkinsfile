@@ -31,7 +31,7 @@ pipeline {
                             branches: [[name: '*/master']],
                             userRemoteConfigs: [[
                                 url: 'https://github.com/000Revan/lab_agent_backend.git',
-                                credentialsId: 'github-read'
+                                credentialsId: 'Github-token'
                             ]]
                         ]
                     )
