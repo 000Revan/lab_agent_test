@@ -134,6 +134,17 @@ equipment_create_fail:
         quantity: 5
         status: 1
 
+  - title: "创建设备缺少lab_id字段"
+    role: admin
+    payload:
+      name: "${unique_equipment_name}"
+    expect:
+      http_status: 422
+      code: 422
+      message: "请求参数校验错误"
+      data: null
+
+equipment_create_known_bug:
   - title: "使用不存在lab_id创建设备失败"
     role: admin
     payload:
@@ -146,16 +157,6 @@ equipment_create_fail:
       data: null
     db_verify:
       exists: false
-
-  - title: "创建设备缺少lab_id字段"
-    role: admin
-    payload:
-      name: "${unique_equipment_name}"
-    expect:
-      http_status: 422
-      code: 422
-      message: "请求参数校验错误"
-      data: null
 
 equipment_update_success:
   - title: "管理员修改设备成功"

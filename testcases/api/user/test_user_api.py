@@ -3,8 +3,10 @@ import allure
 import pytest
 
 from utils.assert_util import (
+    KnownBackendBugAssertionError,
     assert_common_response,
     assert_database_expectation,
+    raise_if_known_bug_response,
 )
 from utils.yaml_util import load_data_yaml
 
@@ -17,6 +19,7 @@ update_user_profile_case = (
 update_user_password_case = (
     user_data["user_password_update_success"] + user_data["user_password_update_fail"]
 )
+update_user_password_known_bug_case = user_data["user_password_update_known_bug"]
 admin_list_users_case = (
     user_data["admin_user_list_success"] + user_data["admin_user_list_fail"]
 )
@@ -93,6 +96,44 @@ class TestUserApi:
             with allure.step("断言数据库数据一致性"):
                 user = query_user(user_id=temp_user_account["id"])
                 assert_database_expectation(user, case["db_verify"])
+
+    @allure.story("修改密码接口")
+    @pytest.mark.xfail(
+        strict=True,
+        raises=KnownBackendBugAssertionError,
+        reason="BUG-USER-001：新密码为空仍被加密并保存",
+    )
+    @pytest.mark.parametrize(
+        "case",
+        update_user_password_known_bug_case,
+        ids=[case["title"] for case in update_user_password_known_bug_case],
+    )
+    def test_update_user_password_known_bug(
+        self,
+        api_factory,
+        temp_user_account,
+        query_user,
+        case,
+    ):
+        """空密码应被拒绝，并保持数据库中的原密码不变。"""
+        allure.dynamic.title(case["title"])
+        user_api = api_factory("user", role=case["role"])
+
+        with allure.step("发送新密码为空的修改密码请求"):
+            res = user_api.password(case["payload"])
+
+        raise_if_known_bug_response(
+            res,
+            http_status=200,
+            code=200,
+            message="请求成功",
+        )
+
+        with allure.step("断言期望的正确响应"):
+            assert_common_response(res, case["expect"])
+        with allure.step("断言数据库中的原密码未被修改"):
+            user = query_user(user_id=temp_user_account["id"])
+            assert_database_expectation(user, case["db_verify"])
 
     @allure.story("获取用户列表接口")
     @pytest.mark.parametrize(

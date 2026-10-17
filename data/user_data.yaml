@@ -186,17 +186,6 @@ user_password_update_fail:
       message: "新密码不能与原密码相同"
       data: null
 
-  - title: "普通用户修改密码失败-新密码为空"
-    role: temp_user
-    payload:
-      old_password: "123456"
-      new_password: ""
-    expect:
-      http_status: 200
-      code: 400
-      message: "密码不能为空"
-      data: null
-
   - title: "普通用户修改密码失败-无字段"
     role: temp_user
     payload: null
@@ -236,6 +225,20 @@ user_password_update_fail:
       code: 401
       message: "Not authenticated"
       data: null
+
+user_password_update_known_bug:
+  - title: "普通用户修改密码失败-新密码为空"
+    role: temp_user
+    payload:
+      old_password: "123456"
+      new_password: ""
+    expect:
+      http_status: 200
+      code: 400
+      message: "密码不能为空"
+      data: null
+    db_verify:
+      password_plaintext: "123456"
 
 admin_user_list_success:
   - title: "管理员获取用户列表成功"

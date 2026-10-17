@@ -2,7 +2,12 @@
 import allure
 import pytest
 
-from utils.assert_util import assert_common_response, assert_database_expectation
+from utils.assert_util import (
+    KnownBackendBugAssertionError,
+    assert_common_response,
+    assert_database_expectation,
+    raise_if_known_bug_response,
+)
 from utils.yaml_util import load_data_yaml
 
 
@@ -16,6 +21,7 @@ equipment_create_case = (
     equipment_data["equipment_create_success"]
     + equipment_data["equipment_create_fail"]
 )
+equipment_create_known_bug_case = equipment_data["equipment_create_known_bug"]
 equipment_update_case = (
     equipment_data["equipment_update_success"]
     + equipment_data["equipment_update_fail"]
@@ -111,6 +117,53 @@ class TestEquipmentApi:
                     equipment,
                     resolved_case["db_verify"],
                 )
+
+    @allure.story("创建设备接口")
+    @pytest.mark.xfail(
+        strict=True,
+        raises=KnownBackendBugAssertionError,
+        reason=(
+            "BUG-EQUIPMENT-001：创建设备未校验lab_id，"
+            "数据库外键异常导致HTTP 500"
+        ),
+    )
+    @pytest.mark.parametrize(
+        "case",
+        equipment_create_known_bug_case,
+        ids=[case["title"] for case in equipment_create_known_bug_case],
+    )
+    def test_create_equipment_known_bug(
+        self,
+        api_factory,
+        resolve_case_references,
+        delete_test_equipment_by_identity,
+        query_equipment,
+        case,
+    ):
+        """不存在的实验室应返回可预期的业务错误，且不能产生设备记录。"""
+        allure.dynamic.title(case["title"])
+        resolved_case = resolve_case_references(case)
+        payload = resolved_case["payload"]
+        lab_id = payload["lab_id"]
+        name = payload["name"]
+        delete_test_equipment_by_identity(lab_id, name)
+
+        equipment_api = api_factory("equipment", role=resolved_case["role"])
+        with allure.step("发送不存在实验室的创建设备请求"):
+            res = equipment_api.create(payload)
+
+        raise_if_known_bug_response(
+            res,
+            http_status=500,
+            code=500,
+            message="服务器内部错误",
+        )
+
+        with allure.step("断言期望的正确响应"):
+            assert_common_response(res, resolved_case["expect"])
+        with allure.step("断言数据库未产生设备记录"):
+            equipment = query_equipment(lab_id=lab_id, name=name)
+            assert_database_expectation(equipment, resolved_case["db_verify"])
 
     @allure.story("修改设备接口")
     @pytest.mark.parametrize(

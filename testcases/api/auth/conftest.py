@@ -1,59 +1,26 @@
 import pytest
-import uuid
-from utils.test_data_util import create_test_user, delete_test_user
 
-
-@pytest.fixture(scope="module", autouse=True)
-def auth_base_accounts(prepared_accounts):
-    """认证模块基础账号前置，保证普通用户和管理员账号已存在。"""
-    return prepared_accounts
-
-
-class UserCleanup:
-    """注册用例临时用户清理器。"""
-
-    def __init__(self, db):
-        self.db = db
-        self.usernames = []
-
-    def add(self, username):
-        """记录临时用户，并先清理历史残留，避免重复执行时账号已存在。"""
-        if not username:
-            return
-        self.db.execute(
-            "DELETE FROM users WHERE username = %s",
-            (username,),
-        )
-        if username not in self.usernames:
-            self.usernames.append(username)
-
-    append = add
-
-    def cleanup(self):
-        for username in self.usernames:
-            self.db.execute(
-                "DELETE FROM users WHERE username = %s",
-                (username,),
-            )
+from utils.test_data_util import create_test_user, delete_test_user, unique_name
 
 
 @pytest.fixture(scope="function")
-def user_cleanup(db):
-    """注册后置清理"""
-    cleanup = UserCleanup(db)
-    yield cleanup
-    cleanup.cleanup()
+def register_candidate():
+    """生成尚未入库的动态注册账号，避免固定账号造成重复执行冲突。"""
+    return {
+        "username": unique_name("register_user"),
+        "password": "Register@123456",
+        "name": "注册测试用户",
+    }
 
 
 @pytest.fixture(scope="function")
 def disabled_user(db):
-    """创建禁用用户，用于测试禁用账号登录"""
-    username = f"disabled_user_{uuid.uuid4().hex[:8]}"
-    password = "123456"
+    """创建禁用用户，用于验证禁用账号不能登录。"""
+    password = "Auth@123456"
 
     user = create_test_user(
         db=db,
-        username=username,
+        username=unique_name("disabled_user"),
         password=password,
         name="禁用用户",
         role="student",
@@ -70,12 +37,11 @@ def disabled_user(db):
 
 @pytest.fixture(scope="function")
 def existing_user(db):
-    """创建已存在用户，用于测试注册账号重复"""
-    username = f"existing_user_{uuid.uuid4().hex[:8]}"
-    password = "123456"
+    """创建已存在用户，用于验证重复账号注册。"""
+    password = "Auth@123456"
     user = create_test_user(
         db=db,
-        username=username,
+        username=unique_name("existing_user"),
         password=password,
         name="已存在用户",
         role="student",
@@ -86,3 +52,21 @@ def existing_user(db):
         "password": password,
     }
     delete_test_user(db, user_id=user["id"])
+
+
+@pytest.fixture(scope="function")
+def query_user(db):
+    """按用户名查询认证模块创建的用户，供数据库契约断言使用。"""
+
+    def query(username):
+        return db.query_one(
+            """
+            SELECT *
+            FROM users
+            WHERE username = %s
+            LIMIT 1
+            """,
+            (username,),
+        )
+
+    return query

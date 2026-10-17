@@ -19,6 +19,27 @@ DATA_TYPE_MAP = {
 }
 
 
+class KnownBackendBugAssertionError(AssertionError):
+    """仅标识精确命中的已知后端缺陷，避免 xfail 吞掉其他失败。"""
+
+
+def raise_if_known_bug_response(response, *, http_status, code, message):
+    """响应精确命中已知缺陷时抛出专用异常，供严格 xfail 捕获。"""
+    if response.status_code != http_status:
+        return
+
+    try:
+        body = response.json()
+    except ValueError:
+        return
+
+    if body.get("code") == code and body.get("message") == message:
+        raise KnownBackendBugAssertionError(
+            f"命中已知后端缺陷：http_status={http_status}, "
+            f"code={code}, message={message}"
+        )
+
+
 def assert_http_status(res, expected=200):
     """断言 HTTP 响应码"""
     assert (
