@@ -28,7 +28,7 @@ pipeline {
                         changelog: true,
                         scm: [
                             $class: 'GitSCM',
-                            branches: [[name: '*/main']],
+                            branches: [[name: '*/master']],
                             userRemoteConfigs: [[
                                 url: 'https://github.com/000Revan/lab_agent_backend.git',
                                 credentialsId: 'github-read'
