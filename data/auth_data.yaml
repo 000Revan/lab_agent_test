@@ -6,7 +6,7 @@ login_success:
       password: ${prepared_accounts.user.password}
     expect:
       http_status: 200
-      code: 200
+      code: 999
       message: 登录成功
       data_keys:
         - token
