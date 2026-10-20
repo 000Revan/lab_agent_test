@@ -32,20 +32,21 @@ pipeline {
 
         PYTHONUTF8 = '1'
         PYTHONUNBUFFERED = '1'
-
-        // 防止检出或环境准备失败时发布旧报告
-        REPORTS_CURRENT = 'false'
     }
 
     stages {
         stage('清理旧代码状态') {
             steps {
                 script {
+                    // 动态标记不要放入environment块。
+                    env.REPORTS_CURRENT = 'false'
+
                     if (isUnix()) {
                         error('此Jenkinsfile需要在Windows节点运行')
                     }
 
-                    // 只清理两个代码目录，保留.git和外部.ci缓存。
+                    // 仅清理代码目录。
+                    // 保留.git目录和工作区根目录下的.ci环境缓存。
                     for (repo in ['tests', 'backend']) {
                         if (fileExists("${repo}/.git")) {
                             dir(repo) {
@@ -103,7 +104,7 @@ pipeline {
 
         stage('清理本次运行目录') {
             steps {
-                // 即使仓库意外跟踪了报告文件，也不发布旧结果。
+                // 防止本次构建使用上一次遗留的测试报告。
                 dir('tests/reports') {
                     deleteDir()
                 }
@@ -162,12 +163,12 @@ HOST = "127.0.0.1"
 PORT = 18000
 BASE_URL = f"http://{HOST}:{PORT}"
 
-# 修改环境准备策略时递增，让旧缓存失效。
+# 修改环境准备策略时递增，使旧缓存失效。
 ENV_SCHEMA = "v1"
 
 
 def requirements_files(project):
-    """收集主requirements及通过-r/-c引用的文件。"""
+    """收集requirements及通过-r/-c引用的本地文件。"""
     discovered = set()
 
     def visit(path):
@@ -248,7 +249,7 @@ def prepare_environment(name):
     python = environment / "Scripts" / "python.exe"
     marker = CACHE / f"{name}.sha256"
 
-    # 避免缓存目录通过链接指向工作区之外。
+    # 避免环境目录通过链接指向缓存目录之外。
     environment.resolve().relative_to(CACHE.resolve())
 
     fingerprint = environment_fingerprint(project)
@@ -293,7 +294,7 @@ def prepare_environment(name):
             )
             return
 
-    # 安装成功之前不保留有效指纹。
+    # 安装成功前不保留有效指纹。
     marker.unlink(missing_ok=True)
 
     if environment.exists():
@@ -340,7 +341,7 @@ def prepare_environment(name):
         timeout=60,
     )
 
-    # 全部成功后再原子替换指纹。
+    # 全部成功后再保存指纹。
     temporary = marker.with_suffix(".tmp")
     temporary.write_text(
         fingerprint, encoding="utf-8"
@@ -385,8 +386,8 @@ def prepare_config():
         encoding="utf-8",
     )
 
-    # 使用后端自己的配置加载逻辑。
-    # 只返回非密码字段。
+    # 使用后端自身的配置加载逻辑。
+    # 只返回非密码字段，不输出完整连接字符串。
     check_code = """
 import json
 from app.config import settings
@@ -430,6 +431,7 @@ print(json.dumps({
 def execute_sql(db, sql):
     import pymysql
 
+    # 不指定database，因为测试数据库可能尚不存在。
     connection = pymysql.connect(
         host=db["host"],
         port=int(db.get("port", 3306)),
@@ -512,7 +514,7 @@ def stop_backend(process):
 def run_tests():
     REPORTS.mkdir(parents=True, exist_ok=True)
 
-    # 校验配置、检查端口后，才允许修改数据库。
+    # 配置和端口检查通过后，才允许修改数据库。
     selected_env, db = prepare_config()
     check_port()
 
@@ -689,6 +691,8 @@ if __name__ == "__main__":
     post {
         always {
             script {
+                echo "本次报告发布标记：${env.REPORTS_CURRENT}"
+
                 if (env.REPORTS_CURRENT == 'true') {
                     catchError(
                         buildResult: 'FAILURE',
@@ -749,8 +753,8 @@ if __name__ == "__main__":
 
         cleanup {
             script {
-                // 清除敏感配置和本次运行产物。
-                // 不删除仓库、.git或.ci虚拟环境缓存。
+                // 清除注入配置和临时产物。
+                // 保留仓库、.git和.ci虚拟环境缓存。
                 catchError(
                     buildResult: 'FAILURE',
                     stageResult: 'FAILURE',
